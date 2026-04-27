@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Valores – Kanban</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a; --border:#2e3347;
+  --text:#e8eaf0; --muted:#6b7280; --accent:#6366f1; --accent2:#8b5cf6;
+  --green:#10b981; --yellow:#f59e0b; --red:#ef4444; --blue:#3b82f6;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:0;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px 32px;width:340px;box-shadow:0 24px 60px rgba(0,0,0,.5);}
+.login-logo{font-size:36px;text-align:center;margin-bottom:6px;}
+.login-title{font-size:18px;font-weight:700;text-align:center;margin-bottom:4px;}
+.login-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:24px;}
+.login-label{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px;display:block;}
+.login-input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border .15s;}
+.login-input:focus{border-color:var(--accent);}
+.login-btn{width:100%;margin-top:14px;padding:11px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .15s;}
+.login-btn:hover{opacity:.88;}
+.login-error{color:#f87171;font-size:12px;text-align:center;margin-top:8px;min-height:18px;}
+.login-info{font-size:11px;color:var(--muted);text-align:center;margin-top:14px;line-height:1.6;}
+.login-manage{font-size:11px;color:var(--accent);text-align:center;margin-top:10px;cursor:pointer;text-decoration:underline;}
+
+/* GERENCIAR CHAVES */
+#chaves-screen{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:9998;}
+.chaves-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;width:360px;max-height:80vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.5);}
+.chave-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface2);border-radius:8px;margin-bottom:6px;}
+.chave-info p{margin:0;font-size:12px;}
+.chave-nome{font-weight:700;color:var(--text);}
+.chave-val{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
+
+/* NAV */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.nav-title{font-size:14px;font-weight:700;color:var(--text);margin-right:auto;padding:12px 0;white-space:nowrap;}
+.nav-tab{padding:12px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.nav-tab:hover{color:var(--text);}
+.nav-right{display:flex;align-items:center;gap:8px;padding:6px 0;margin-left:8px;flex-wrap:wrap;}
+#status-salvo{font-size:10px;color:var(--green);white-space:nowrap;}
+.nav-user{font-size:11px;color:var(--muted);white-space:nowrap;}
+
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;flex-direction:column;gap:10px;}
+.header-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+select,input[type=text],input[type=number],input[type=password],textarea{
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border .15s;
+}
+select:focus,input:focus,textarea:focus{border-color:var(--accent);}
+select{padding:7px 10px;cursor:pointer;}
+input[type=text],input[type=number],input[type=password]{padding:7px 10px;}
+
+.btn{border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-primary{background:var(--accent);color:#fff;padding:7px 14px;font-size:13px;}
+.btn-dark{background:var(--surface2);color:var(--muted);padding:7px 12px;font-size:13px;border:1px solid var(--border);}
+.btn-green{background:var(--green);color:#fff;padding:7px 12px;font-size:12px;}
+.btn-red{background:#4c1414;color:#f87171;padding:3px 9px;font-size:11px;border-radius:6px;}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:7px;}
+
+.search-wrap{position:relative;flex:1;min-width:200px;}
+.search-wrap input{width:100%;padding:8px 12px 8px 32px;}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--muted);}
+.search-clear{position:absolute;right:9px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;}
+
+.badge{font-size:10px;font-weight:600;border-radius:5px;padding:2px 7px;display:inline-block;}
+.badge-blue{background:#1d3a6e;color:#60a5fa;}
+.badge-green{background:#064e35;color:#34d399;}
+.badge-red{background:#4c1414;color:#f87171;}
+
+/* SUMMARY */
+.summary{display:flex;gap:10px;padding:12px 16px;flex-wrap:wrap;}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;min-width:120px;}
+.sum-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.sum-val{font-size:15px;font-weight:700;margin-top:3px;font-family:'DM Mono',monospace;}
+
+/* BOARD */
+.board{display:flex;gap:12px;padding:0 16px 24px;overflow-x:auto;}
+.col{min-width:255px;flex:1;}
+.col-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.col-label{font-size:13px;font-weight:700;}
+.col-count{font-size:11px;font-weight:700;color:#fff;border-radius:20px;padding:2px 9px;}
+.col-total{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;font-family:'DM Mono',monospace;}
+.col-body{border-radius:12px;padding:11px;min-height:140px;border:1px solid;}
+.col-empty{text-align:center;padding:20px 0;color:var(--muted);font-size:12px;}
+
+/* CARD */
+.card{background:var(--surface);border-radius:11px;margin-bottom:8px;overflow:hidden;border-left:3px solid;transition:box-shadow .2s;}
+.card:hover{box-shadow:0 4px 18px rgba(0,0,0,.4);}
+.card-top{padding:11px 12px;cursor:pointer;}
+.card-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.card-equipe{font-weight:700;font-size:13px;}
+.card-valor{font-weight:700;font-size:13px;font-family:'DM Mono',monospace;white-space:nowrap;}
+.card-badges{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
+.card-badge{font-size:10px;background:var(--surface2);color:var(--muted);border-radius:20px;padding:2px 8px;}
+.card-alert{margin-top:6px;font-size:11px;color:#f59e0b;background:#4d380022;border-radius:6px;padding:3px 8px;display:inline-block;}
+.card-toggle{text-align:right;font-size:10px;color:var(--muted);margin-top:3px;}
+
+/* CARD DETAIL */
+.card-detail{border-top:1px solid var(--border);}
+.det{padding:10px 12px;border-top:1px solid var(--border);}
+.det:first-child{border-top:none;}
+.det-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+.det-info{display:flex;gap:16px;flex-wrap:wrap;}
+.det-info-item .k{font-size:10px;color:var(--muted);font-weight:600;margin:0;}
+.det-info-item .v{font-size:12px;font-weight:700;margin:2px 0 0;font-family:'DM Mono',monospace;}
+.dates-row{display:flex;gap:10px;flex-wrap:wrap;}
+.date-field{flex:1;min-width:120px;}
+.date-field label{font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px;}
+.date-field input{width:100%;}
+.ot-item{display:flex;justify-content:space-between;align-items:center;background:#0d1f35;border-radius:7px;padding:6px 9px;margin-bottom:5px;border-left:3px solid var(--blue);}
+.ot-name{font-size:12px;color:#60a5fa;font-weight:600;}
+.ot-time{font-size:10px;color:var(--muted);margin-top:2px;}
+.comment-item{background:var(--surface2);border-radius:7px;padding:7px 10px;margin-bottom:5px;border-left:3px solid var(--accent2);}
+.comment-text{font-size:12px;color:var(--text);line-height:1.5;}
+.comment-time{font-size:10px;color:var(--muted);margin-top:3px;}
+.prio-btns,.move-btns,.rep-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.prio-btn,.move-btn{font-size:11px;padding:5px 11px;border-radius:20px;border:1.5px solid;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;background:transparent;transition:opacity .15s;}
+.rep-btn{font-size:12px;padding:6px 13px;border-radius:20px;border:1.5px solid var(--blue);color:var(--blue);background:#0d1f35;cursor:pointer;font-weight:600;font-family:'DM Sans',sans-serif;}
+.input-row{display:flex;gap:6px;margin-top:6px;}
+.input-row input{flex:1;}
+
+/* DADOS TAB */
+.dados-page{padding:16px;}
+.dados-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.dados-hdr h2{font-size:15px;font-weight:700;}
+.dados-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{background:var(--surface2);color:var(--muted);font-weight:600;padding:9px 11px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:8px 11px;border-bottom:1px solid var(--border);color:var(--text);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface2);}
+td input,td select{width:100%;background:transparent;border:1px solid transparent;color:var(--text);padding:3px 5px;border-radius:5px;font-size:12px;font-family:'DM Sans',sans-serif;}
+td input:focus,td select:focus{border-color:var(--accent);background:var(--surface2);outline:none;}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:999;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:350px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.5);}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:14px;}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:9px;}
+.field label{font-size:11px;color:var(--muted);font-weight:600;}
+.field input,.field select,.field textarea{width:100%;padding:8px 10px;}
+.field textarea{resize:vertical;min-height:55px;}
+.modal-btns{display:flex;gap:10px;margin-top:14px;}
+.modal-btns button{flex:1;padding:10px;border-radius:9px;font-size:13px;}
+.resp-item{display:flex;justify-content:space-between;align-items:center;padding:8px 11px;background:var(--surface2);border-radius:8px;margin-bottom:6px;}
+.resp-name{font-size:13px;font-weight:600;}
+
+.hidden{display:none!important;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════ TELA DE LOGIN ══════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">📋</div>
+    <div class="login-title">Controle de Valores</div>
+    <div class="login-sub">Digite sua chave de acesso para entrar</div>
+    <label class="login-label">Seu nome</label>
+    <input class="login-input" type="text" id="login-nome" placeholder="Ex.: Bruno" style="margin-bottom:10px">
+    <label class="login-label">Chave de acesso</label>
+    <input class="login-input" type="password" id="login-chave" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()">
+    <button class="login-btn" onclick="fazerLogin()">Entrar</button>
+    <div class="login-error" id="login-erro"></div>
+    <div class="login-info">
+      Primeira vez? Use a chave padrão: <strong style="color:var(--accent)">kanban2025</strong><br>
+      Depois crie suas chaves pessoais.
+    </div>
+    <div class="login-manage" onclick="abrirGerenciarChaves()">⚙️ Gerenciar chaves de acesso</div>
+  </div>
+</div>
+
+<!-- ══════════ GERENCIAR CHAVES ══════════ -->
+<div id="chaves-screen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);align-items:center;justify-content:center;z-index:9998;">
+  <div class="chaves-box">
+    <h3 style="margin-bottom:14px">🔑 Chaves de Acesso</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">Cada pessoa da equipe deve ter sua chave única. Compartilhe a chave individualmente — não mostre a lista para todos.</p>
+    <div id="chaves-lista"></div>
+    <div style="margin-top:12px">
+      <div class="field"><label>Nome da pessoa</label><input type="text" id="nova-chave-nome" placeholder="Ex.: Samara"></div>
+      <div class="field"><label>Chave de acesso</label>
+        <div style="position:relative">
+          <input type="password" id="nova-chave-val" placeholder="Mínimo 6 caracteres" style="width:100%;padding-right:36px">
+          <button onclick="toggleSenha('nova-chave-val',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px">👁️</button>
+        </div>
+      </div>
+      <button class="btn btn-green" style="width:100%" onclick="adicionarChave()">+ Adicionar chave</button>
+      <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+        <p style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px">🔄 ALTERAR CHAVE EXISTENTE</p>
+        <div class="field"><label>Selecionar pessoa</label><select id="edit-chave-nome" style="width:100%"></select></div>
+        <div class="field"><label>Nova chave</label>
+          <div style="position:relative">
+            <input type="password" id="edit-chave-val" placeholder="Nova chave (mín. 6 caracteres)" style="width:100%;padding-right:36px">
+            <button onclick="toggleSenha('edit-chave-val',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px">👁️</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="alterarChave()">✏️ Alterar chave</button>
+      </div>
+    </div>
+    <button class="btn btn-dark" style="width:100%;margin-top:10px" onclick="fecharGerenciarChaves()">Fechar</button>
+  </div>
+</div>
+
+<!-- ══════════ APP PRINCIPAL ══════════ -->
+<div id="app" class="hidden">
+
+<!-- NAV -->
+<div class="nav">
+  <span class="nav-title">📋 Controle de Valores</span>
+  <span class="nav-tab active" id="tab-btn-kanban" onclick="mostrarAba('kanban')">Kanban</span>
+  <span class="nav-tab" id="tab-btn-dados" onclick="mostrarAba('dados')">📊 Dados da Planilha</span>
+  <div class="nav-right">
+    <span id="status-salvo"></span>
+    <span class="nav-user" id="nav-user"></span>
+    <button class="btn btn-dark" style="font-size:11px;padding:5px 10px" onclick="sair()">Sair</button>
+  </div>
+</div>
+
+<!-- KANBAN ABA -->
+<div id="aba-kanban">
+  <div class="header">
+    <div class="header-row">
+      <select id="sel-filtro" onchange="renderBoard()">
+        <option value="todos">👥 Todos</option>
+      </select>
+      <button class="btn btn-dark" onclick="abrirRespModal()">👥 Responsáveis</button>
+      <button class="btn btn-primary" onclick="abrirAddModal()">+ Novo</button>
+      <div id="info-counts" style="font-size:11px;color:var(--muted)"></div>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="busca" placeholder="Buscar equipe, responsável ou OT..." oninput="renderBoard()">
+      <button class="search-clear" onclick="document.getElementById('busca').value='';renderBoard()">✕</button>
+    </div>
+  </div>
+  <div class="summary" id="summary"></div>
+  <div id="ots-dia-wrap" style="padding:0 16px 8px"></div>
+  <div class="board" id="board"></div>
+</div>
+
+<!-- DADOS ABA -->
+<div id="aba-dados" class="hidden">
+  <div class="dados-page">
+    <div class="dados-hdr">
+      <div>
+        <h2>📊 Dados da Planilha</h2>
+        <p style="font-size:12px;color:var(--muted);margin-top:3px">Edite diretamente. Alterações refletem no Kanban.</p>
+      </div>
+      <div class="dados-actions">
+        <button class="btn btn-dark" onclick="importarCSV()">📥 Importar CSV</button>
+        <button class="btn btn-dark" onclick="exportarCSV()">📤 Exportar CSV</button>
+        <button class="btn btn-dark" onclick="exportarExcel()">📊 Exportar Excel</button>
+        <button class="btn btn-green" onclick="addLinhaDados()">+ Linha</button>
+      </div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.7">
+      💡 <strong style="color:var(--text)">Dica:</strong> Exporte sua planilha VALIDAÇÃO do Excel como <strong style="color:var(--text)">.CSV</strong> e importe aqui.
+    </div>
+    <div class="table-wrap"><table><thead><tr>
+      <th>Equipe</th><th>Responsável</th><th>Valor</th><th>Data</th>
+      <th>Dt Enviada</th><th>Dt Revisada</th><th>Município</th><th>Baremo</th>
+      <th>Nº Ordem</th><th>Status</th><th>Prioridade</th><th>Obs</th><th>Extra</th><th></th>
+    </tr></thead><tbody id="dados-tbody"></tbody></table></div>
+    <input type="file" id="csv-input" accept=".csv" class="hidden" onchange="handleCSV(event)">
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- MODAL NOVO -->
+<div class="modal-bg hidden" id="modal-add">
+  <div class="modal">
+    <h3>➕ Novo Lançamento</h3>
+    <div class="field"><label>Equipe</label><input id="f-equipe" placeholder="ex: ACA-CO-10B"></div>
+    <div class="field"><label>Responsável</label><select id="f-resp"></select></div>
+    <div class="field"><label>Valor (R$)</label><input id="f-valor" type="number"></div>
+    <div class="field"><label>Data lançamento</label><input id="f-data" placeholder="dd/mm/aaaa"></div>
+    <div class="field"><label>📤 Data Enviada</label><input id="f-enviada" placeholder="dd/mm/aaaa"></div>
+    <div class="field"><label>✅ Data Revisada</label><input id="f-revisada" placeholder="dd/mm/aaaa"></div>
+    <div class="field"><label>Município</label><input id="f-municipio"></div>
+    <div class="field"><label>Baremo</label><input id="f-baremo" placeholder="B01"></div>
+    <div class="field"><label>Nº Ordem Serviço</label><input id="f-ordem"></div>
+    <div class="field"><label>Observação</label><textarea id="f-obs"></textarea></div>
+    <div class="field"><label>Alerta / Extra</label><input id="f-extra"></div>
+    <div class="field"><label>Prioridade</label>
+      <select id="f-prio"><option value="alta">🔴 Alta</option><option value="normal" selected>🟡 Normal</option><option value="baixa">🟢 Baixa</option></select>
+    </div>
+    <div class="field"><label>Status</label>
+      <select id="f-status">
+        <option value="pendente">⏳ Pendente</option><option value="bloqueado">🔒 Bloqueado</option>
+        <option value="analise">🔍 Em Análise</option><option value="resolvido">✅ Resolvido</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="salvarNovo()">Adicionar</button>
+      <button class="btn btn-dark" onclick="fecharModal('modal-add')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESPONSÁVEIS -->
+<div class="modal-bg hidden" id="modal-resp">
+  <div class="modal">
+    <h3>👥 Responsáveis</h3>
+    <div id="resp-lista"></div>
+    <div class="input-row" style="margin-top:12px">
+      <input type="text" id="novo-resp" placeholder="Nome do novo responsável...">
+      <button class="btn btn-green" onclick="adicionarResp()">+</button>
+    </div>
+    <button class="btn btn-dark" style="width:100%;margin-top:12px" onclick="fecharModal('modal-resp')">Fechar</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════
+// DADOS INICIAIS
+// ══════════════════════════════════
+const DADOS_INICIAIS = [
+  {id:1,equipe:'ACA-CO-2003',responsavel:'Bruno',valor:1792.68,data:'29/10/2025',dataEnviada:'29/10/2025',dataRevisada:'',municipio:'Sobral',baremo:'B01',ordemServico:'39469715',obs:'Disponibilidade R$3.664,1 → ficando 0,84 informada',extra:'Conferir horamente',status:'pendente',prioridade:'alta',comentarios:[],ots:[],daPlanilha:true},
+  {id:2,equipe:'ACA-CO-1203',responsavel:'Bruno',valor:484.01,data:'30/10/2025',dataEnviada:'30/10/2025',dataRevisada:'',municipio:'Bela Cruz',baremo:'B02',ordemServico:'',obs:'2 equipes, faltando disponibilidade. Impossível alterar 24/04/26',extra:'Conferir BPM e Gordin',status:'bloqueado',prioridade:'alta',comentarios:[],ots:[],daPlanilha:true},
+  {id:3,equipe:'ACA-CO-2003',responsavel:'Bruno',valor:358.93,data:'31/10/2025',dataEnviada:'31/10/2025',dataRevisada:'31/10/2025',municipio:'Sobral',baremo:'B01',ordemServico:'39484477',obs:'Corrigido e aprovado',extra:'',status:'resolvido',prioridade:'normal',comentarios:[],ots:[],daPlanilha:true},
+  {id:4,equipe:'ACA-CO-2103',responsavel:'Bruno',valor:253.15,data:'31/10/2025',dataEnviada:'31/10/2025',dataRevisada:'31/10/2025',municipio:'Acaraú',baremo:'B01',ordemServico:'',obs:'Sem pendências, valor a receber',extra:'Conferir horamente',status:'resolvido',prioridade:'normal',comentarios:[],ots:[],daPlanilha:true},
+  {id:5,equipe:'ACA-CO-10B',responsavel:'Samara',valor:2086.41,data:'23/10/2025',dataEnviada:'23/10/2025',dataRevisada:'23/10/2025',municipio:'Sobral',baremo:'B01',ordemServico:'',obs:'',extra:'',status:'resolvido',prioridade:'normal',comentarios:[],ots:[],daPlanilha:true},
+  {id:6,equipe:'ACA-CO-11B',responsavel:'Samara',valor:3128.60,data:'26/10/2025',dataEnviada:'26/10/2025',dataRevisada:'26/10/2025',municipio:'Sobral',baremo:'B02',ordemServico:'',obs:'',extra:'',status:'resolvido',prioridade:'normal',comentarios:[],ots:[],daPlanilha:true},
+  {id:7,equipe:'ACA-CO-12B',responsavel:'Samara',valor:3125.51,data:'26/10/2025',dataEnviada:'26/10/2025',dataRevisada:'26/10/2025',municipio:'Bela Cruz',baremo:'B01',ordemServico:'',obs:'',extra:'',status:'resolvido',prioridade:'normal',comentarios:[],ots:[],daPlanilha:true},
+  {id:8,equipe:'ACA-CO-20B',responsavel:'Samara',valor:253.15,data:'27/10/2025',dataEnviada:'27/10/2025',dataRevisada:'27/10/2025',municipio:'Sobral',baremo:'B01',ordemServico:'',obs:'',extra:'',status:'resolvido',prioridade:'normal',comentarios:[],ots:[],daPlanilha:true},
+];
+
+const COLS = [
+  {id:'pendente', label:'⏳ Pendente',  color:'#f59e0b',bg:'#4d380015',border:'#f59e0b33'},
+  {id:'bloqueado',label:'🔒 Bloqueado', color:'#ef4444',bg:'#4c141415',border:'#ef444433'},
+  {id:'analise',  label:'🔍 Em Análise',color:'#8b5cf6',bg:'#2e1a5e15',border:'#8b5cf633'},
+  {id:'resolvido',label:'✅ Resolvido', color:'#10b981',bg:'#064e3515',border:'#10b98133'},
+];
+
+const PRIOS = {
+  alta:  {label:'🔴 Alta',  color:'#ef4444',bg:'#4c1414'},
+  normal:{label:'🟡 Normal',color:'#f59e0b',bg:'#4d3800'},
+  baixa: {label:'🟢 Baixa', color:'#10b981',bg:'#064e35'},
+};
+
+// ══════════════════════════════════
+// ESTADO
+// ══════════════════════════════════
+let cards = [];
+let responsaveis = ['Bruno','Samara'];
+let usuarioAtual = '';
+let expandidos = new Set();
+
+// ══════════════════════════════════
+// CHAVES DE ACESSO
+// ══════════════════════════════════
+function getChaves() {
+  try { return JSON.parse(localStorage.getItem('kanban_chaves')) || [{nome:'Admin',chave:'kanban2025'}]; }
+  catch(e) { return [{nome:'Admin',chave:'kanban2025'}]; }
+}
+function salvarChaves(ch) { localStorage.setItem('kanban_chaves',JSON.stringify(ch)); }
+
+function fazerLogin() {
+  const nome = document.getElementById('login-nome').value.trim();
+  const chave = document.getElementById('login-chave').value.trim();
+  const erro = document.getElementById('login-erro');
+  if (!nome) { erro.textContent='Digite seu nome.'; return; }
+  if (!chave) { erro.textContent='Digite a chave de acesso.'; return; }
+  const chaves = getChaves();
+  const ok = chaves.find(c=>c.chave===chave);
+  if (!ok) { erro.textContent='Chave incorreta. Tente novamente.'; return; }
+  usuarioAtual = nome;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('nav-user').textContent = '👤 '+nome;
+  carregarDados();
+  renderBoard();
+}
+
+function sair() {
+  usuarioAtual='';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-nome').value='';
+  document.getElementById('login-chave').value='';
+  document.getElementById('login-erro').textContent='';
+}
+
+function abrirGerenciarChaves() {
+  renderChaves();
+  document.getElementById('chaves-screen').style.display='flex';
+}
+function fecharGerenciarChaves() { document.getElementById('chaves-screen').style.display='none'; }
+
+function toggleSenha(id, btn) {
+  const el = document.getElementById(id);
+  if (el.type==='password') { el.type='text'; btn.textContent='🙈'; }
+  else { el.type='password'; btn.textContent='👁️'; }
+}
+
+function renderChaves() {
+  const ch = getChaves();
+  document.getElementById('chaves-lista').innerHTML = ch.map((c,i)=>`
+    <div class="chave-item">
+      <div class="chave-info">
+        <p class="chave-nome">👤 ${c.nome}</p>
+        <p class="chave-val">Chave: ${'•'.repeat(c.chave.length)}</p>
+      </div>
+      ${ch.length>1?`<button class="btn btn-red" onclick="removerChave(${i})">remover</button>`:''}
+    </div>`).join('');
+  const sel=document.getElementById('edit-chave-nome');
+  if(sel) sel.innerHTML=ch.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
+}
+
+function alterarChave() {
+  const sel = document.getElementById('edit-chave-nome').value;
+  const nova = document.getElementById('edit-chave-val').value.trim();
+  if (!sel) { alert('Selecione uma pessoa.'); return; }
+  if (nova.length<6) { alert('Mínimo 6 caracteres.'); return; }
+  const ch = getChaves();
+  const idx = ch.findIndex(c=>c.nome===sel);
+  if (idx<0) return;
+  ch[idx].chave = nova;
+  salvarChaves(ch);
+  document.getElementById('edit-chave-val').value='';
+  renderChaves();
+  alert('✅ Chave alterada com sucesso para '+sel+'!');
+}
+
+function adicionarChave() {
+  const nome = document.getElementById('nova-chave-nome').value.trim();
+  const val = document.getElementById('nova-chave-val').value.trim();
+  if (!nome||val.length<6) { alert('Nome e chave (mín. 6 caracteres) são obrigatórios.'); return; }
+  const ch = getChaves();
+  if (ch.find(c=>c.chave===val)) { alert('Essa chave já existe.'); return; }
+  ch.push({nome,chave:val});
+  salvarChaves(ch);
+  document.getElementById('nova-chave-nome').value='';
+  document.getElementById('nova-chave-val').value='';
+  renderChaves();
+}
+
+function removerChave(i) {
+  const ch = getChaves();
+  if (ch.length<=1) { alert('Mantenha ao menos uma chave.'); return; }
+  if (!confirm('Remover esta chave?')) return;
+  ch.splice(i,1); salvarChaves(ch); renderChaves();
+}
+
+// ══════════════════════════════════
+// SALVAMENTO
+// ══════════════════════════════════
+function salvarDados() {
+  try {
+    localStorage.setItem('kanban_cards',JSON.stringify(cards));
+    localStorage.setItem('kanban_resps',JSON.stringify(responsaveis));
+    const agora = new Date().toLocaleString('pt-BR');
+    localStorage.setItem('kanban_salvo',agora);
+    const el=document.getElementById('status-salvo');
+    if(el) el.textContent='💾 '+agora;
+  } catch(e){}
+}
+
+function carregarDados() {
+  try {
+    const c=localStorage.getItem('kanban_cards');
+    const r=localStorage.getItem('kanban_resps');
+    cards = c ? JSON.parse(c) : JSON.parse(JSON.stringify(DADOS_INICIAIS));
+    responsaveis = r ? JSON.parse(r) : ['Bruno','Samara'];
+    const ts=localStorage.getItem('kanban_salvo');
+    const el=document.getElementById('status-salvo');
+    if(el&&ts) el.textContent='💾 '+ts;
+  } catch(e){ cards=JSON.parse(JSON.stringify(DADOS_INICIAIS)); }
+}
+
+// ══════════════════════════════════
+// ABAS
+// ══════════════════════════════════
+function mostrarAba(aba) {
+  document.getElementById('aba-kanban').classList.toggle('hidden', aba!=='kanban');
+  document.getElementById('aba-dados').classList.toggle('hidden', aba!=='dados');
+  document.getElementById('tab-btn-kanban').classList.toggle('active', aba==='kanban');
+  document.getElementById('tab-btn-dados').classList.toggle('active', aba==='dados');
+  if(aba==='dados') renderDados();
+}
+
+// ══════════════════════════════════
+// HELPERS
+// ══════════════════════════════════
+const fmt = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const agora = () => new Date().toLocaleString('pt-BR');
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function hl(t,b){
+  if(!b||!t) return esc(t);
+  const i=t.toLowerCase().indexOf(b.toLowerCase());
+  if(i<0) return esc(t);
+  return esc(t.slice(0,i))+'<mark style="background:#fde68a;border-radius:3px;padding:0 2px;color:#000">'+esc(t.slice(i,i+b.length))+'</mark>'+esc(t.slice(i+b.length));
+}
+
+function getFiltered() {
+  const filtro=document.getElementById('sel-filtro').value;
+  const busca=(document.getElementById('busca').value||'').trim().toLowerCase();
+  return cards.filter(c=>{
+    const mF=filtro==='todos'||c.responsavel===filtro;
+    const mB=!busca||c.equipe.toLowerCase().includes(busca)||c.responsavel.toLowerCase().includes(busca)||(c.ordemServico||'').toLowerCase().includes(busca)||c.ots.some(o=>o.nome.toLowerCase().includes(busca));
+    return mF&&mB;
+  });
+}
+
+// ══════════════════════════════════
+// RENDER BOARD
+// ══════════════════════════════════
+function renderBoard() {
+  const busca=(document.getElementById('busca').value||'').trim().toLowerCase();
+  const filtered=getFiltered();
+
+  // Select responsáveis
+  const sel=document.getElementById('sel-filtro');
+  const cur=sel.value;
+  sel.innerHTML='<option value="todos">👥 Todos</option>'+responsaveis.map(r=>`<option value="${r}"${cur===r?' selected':''}>👤 ${r}</option>`).join('');
+  sel.value=responsaveis.includes(cur)?cur:'todos';
+
+  // Counts
+  const emAberto=cards.filter(c=>c.status!=='resolvido').length;
+  document.getElementById('info-counts').innerHTML=
+    `<span class="badge badge-blue">📊 ${cards.filter(c=>c.daPlanilha).length} importados</span> &nbsp;<span class="badge ${emAberto>0?'badge-red':'badge-green'}">${emAberto>0?'⚠️':'✅'} ${emAberto} em aberto</span>`;
+
+  // Summary
+  const tot=filtered.reduce((s,c)=>s+c.valor,0);
+  const res=filtered.filter(c=>c.status==='resolvido').reduce((s,c)=>s+c.valor,0);
+  document.getElementById('summary').innerHTML=[
+    {l:'Total Geral',v:tot,c:'#e8eaf0'},{l:'✅ Resolvido',v:res,c:'#10b981'},{l:'⏳ Em Aberto',v:tot-res,c:'#ef4444'}
+  ].map(s=>`<div class="sum-card"><div class="sum-label">${s.l}</div><div class="sum-val" style="color:${s.c}">${fmt(s.v)}</div></div>`).join('');
+
+  // OTs por dia
+  renderOTsDia();
+
+  // Board
+  document.getElementById('board').innerHTML=COLS.map(col=>{
+    const cc=filtered.filter(c=>c.status===col.id);
+    return `<div class="col">
+      <div class="col-header"><span class="col-label" style="color:${col.color}">${col.label}</span><span class="col-count" style="background:${col.color}">${cc.length}</span></div>
+      <div class="col-total">${fmt(cc.reduce((s,c)=>s+c.valor,0))}</div>
+      <div class="col-body" style="background:${col.bg};border-color:${col.border}">
+        ${cc.length===0?'<div class="col-empty">Nenhum item</div>':cc.map(c=>renderCard(c,col,busca)).join('')}
+      </div></div>`;
+  }).join('');
+
+  salvarDados();
+}
+
+function renderCard(c,col,busca) {
+  const open=expandidos.has(c.id);
+  const prio=PRIOS[c.prioridade]||PRIOS.normal;
+  const match=busca&&(c.equipe.toLowerCase().includes(busca)||c.responsavel.toLowerCase().includes(busca)||(c.ordemServico||'').toLowerCase().includes(busca)||c.ots.some(o=>o.nome.toLowerCase().includes(busca)));
+  return `<div class="card" style="border-color:${col.color};${match?'outline:2px solid #fbbf24':''}">
+    <div class="card-top" onclick="toggleCard(${c.id})">
+      <div class="card-title-row">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          <span class="card-equipe">${hl(c.equipe,busca)}</span>
+          <span class="badge ${c.daPlanilha?'badge-blue':'badge-green'}">${c.daPlanilha?'📊 Planilha':'✍️ Manual'}</span>
+          <span class="badge" style="background:${prio.bg};color:${prio.color}">${prio.label}</span>
+        </div>
+        <span class="card-valor" style="color:${col.color}">${fmt(c.valor)}</span>
+      </div>
+      <div class="card-badges">
+        <span class="card-badge">👤 ${hl(c.responsavel,busca)}</span>
+        <span class="card-badge">📅 ${c.data||'—'}</span>
+        <span class="card-badge">📍 ${c.municipio||'—'}</span>
+        ${c.ordemServico?`<span class="card-badge">🔢 ${hl(c.ordemServico,busca)}</span>`:''}
+        ${c.comentarios.length?`<span class="card-badge" style="color:#8b5cf6">💬 ${c.comentarios.length}</span>`:''}
+        ${c.ots.length?`<span class="card-badge" style="color:#3b82f6">📎 ${c.ots.length} OT</span>`:''}
+        ${c.dataRevisada?`<span class="card-badge" style="color:#10b981">✔ Revisado</span>`:''}
+      </div>
+      ${c.extra?`<div class="card-alert">⚠️ ${esc(c.extra)}</div>`:''}
+      <div class="card-toggle">${open?'▲':'▼'}</div>
+    </div>
+    ${open?`<div class="card-detail">${renderDetalhe(c)}</div>`:''}
+  </div>`;
+}
+
+function renderDetalhe(c) {
+  const outros=responsaveis.filter(r=>r!==c.responsavel);
+  return `
+  <div class="det">
+    <div class="det-label">📋 Informações</div>
+    <div class="det-info">
+      ${c.ordemServico?`<div class="det-info-item"><p class="k">Nº ORDEM</p><p class="v">${esc(c.ordemServico)}</p></div>`:''}
+      <div class="det-info-item"><p class="k">BAREMO</p><p class="v">${esc(c.baremo)}</p></div>
+      <div class="det-info-item"><p class="k">ORIGEM</p><p class="v" style="color:${c.daPlanilha?'#60a5fa':'#34d399'}">${c.daPlanilha?'📊 Planilha':'✍️ Manual'}</p></div>
+      <div class="det-info-item"><p class="k">ADICIONADO POR</p><p class="v">${esc(c.adicionadoPor||'—')}</p></div>
+    </div>
+  </div>
+  <div class="det">
+    <div class="det-label">🎯 Prioridade</div>
+    <div class="prio-btns">${Object.entries(PRIOS).map(([k,v])=>`<button class="prio-btn" style="border-color:${v.color};color:${v.color};${c.prioridade===k?'background:'+v.bg:''}" onclick="mudarPrio(${c.id},'${k}')">${v.label}</button>`).join('')}</div>
+  </div>
+  <div class="det">
+    <div class="det-label">📆 Datas de Controle</div>
+    <div class="dates-row">
+      <div class="date-field"><label>📤 Enviada</label><input type="text" placeholder="dd/mm/aaaa" value="${esc(c.dataEnviada||'')}" id="de-${c.id}"></div>
+      <div class="date-field"><label>✅ Revisada</label><input type="text" placeholder="dd/mm/aaaa" value="${esc(c.dataRevisada||'')}" id="dr-${c.id}"></div>
+    </div>
+    <button class="btn btn-dark btn-sm" style="margin-top:7px" onclick="salvarDatas(${c.id})">💾 Salvar datas</button>
+  </div>
+  <div class="det">
+    <div class="det-label">📎 OTs</div>
+    ${c.ots.length===0?'<p style="font-size:11px;color:var(--muted);font-style:italic;margin-bottom:5px">Nenhuma OT.</p>':''}
+    ${c.ots.map((o,i)=>`<div class="ot-item"><div><div class="ot-name">${o.tipo==='arquivo'?'📄':'🔢'} ${esc(o.nome)}</div><div class="ot-time">${esc(o.hora)}</div></div><button class="btn btn-red" onclick="removerOT(${c.id},${i})">✕</button></div>`).join('')}
+    <div class="input-row">
+      <input type="text" id="ot-${c.id}" placeholder="Nº da OT...">
+      <button class="btn btn-primary btn-sm" onclick="addOTTexto(${c.id})">+</button>
+      <button class="btn btn-dark btn-sm" onclick="document.getElementById('arq-${c.id}').click()" title="Arquivo">📄</button>
+    </div>
+    <input type="file" id="arq-${c.id}" class="hidden" onchange="addOTArquivo(${c.id},this)">
+  </div>
+  <div class="det">
+    <div class="det-label">🔁 Repassar para</div>
+    <div class="rep-btns">${outros.length===0?'<span style="font-size:11px;color:var(--muted);font-style:italic">Nenhum outro responsável.</span>':outros.map(r=>`<button class="rep-btn" onclick="repassar(${c.id},'${r}')">👤 ${r}</button>`).join('')}</div>
+  </div>
+  ${c.obs?`<div class="det"><div class="det-label">📝 Observação</div><p style="font-size:12px;line-height:1.6">${esc(c.obs)}</p></div>`:''}
+  <div class="det">
+    <div class="det-label">💬 Comentários</div>
+    ${c.comentarios.length===0?'<p style="font-size:11px;color:var(--muted);font-style:italic;margin-bottom:5px">Nenhum ainda.</p>':''}
+    ${c.comentarios.map(cm=>`<div class="comment-item"><div class="comment-text">${esc(cm.texto)}</div><div class="comment-time">${esc(cm.hora)} · ${esc(cm.autor||'')}</div></div>`).join('')}
+    <div class="input-row">
+      <input type="text" id="cm-${c.id}" placeholder="Comentário..." onkeydown="if(event.key==='Enter')addComentario(${c.id})">
+      <button class="btn btn-primary btn-sm" onclick="addComentario(${c.id})">✓</button>
+    </div>
+  </div>
+  <div class="det">
+    <div class="det-label">Mover para</div>
+    <div class="move-btns">
+      ${COLS.filter(col=>col.id!==c.status).map(col=>`<button class="move-btn" style="border-color:${col.color};color:${col.color}" onclick="moverCard(${c.id},'${col.id}')">${col.label}</button>`).join('')}
+      <button class="move-btn" style="border-color:#374151;color:var(--muted)" onclick="deletarCard(${c.id})">🗑️ Remover</button>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════
+// OTs POR DIA
+// ══════════════════════════════════
+function renderOTsDia() {
+  const wrap=document.getElementById('ots-dia-wrap');
+  if(!wrap) return;
+  const porDia={};
+  cards.forEach(c=>{ if(!c.ots.length) return; const d=c.data||'—'; if(!porDia[d]) porDia[d]=[]; porDia[d].push(c); });
+  const dias=Object.keys(porDia).sort();
+  if(!dias.length){wrap.innerHTML='';return;}
+  wrap.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:4px">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📎 Equipes com OTs por Dia</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${dias.map(dia=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-width:150px">
+        <div style="font-size:11px;font-weight:700;color:#60a5fa;margin-bottom:7px">📅 ${dia}</div>
+        ${porDia[dia].map((c,ci)=>`${ci>0?'<div style="border-top:1px solid var(--border);margin:5px 0"></div>':''}<div style="font-size:12px;font-weight:700">${esc(c.equipe)}</div>${c.ots.map((o,i)=>`<div style="font-size:11px;color:var(--muted);padding-left:8px;border-left:2px solid #3b82f633;margin-top:2px">OT ${i+1}: <span style="color:#60a5fa;font-family:'DM Mono',monospace">${esc(o.nome)}</span></div>`).join('')}`).join('')}
+        <div style="margin-top:7px;font-size:10px;color:var(--muted);font-weight:600">Total: ${porDia[dia].reduce((s,c)=>s+c.ots.length,0)} OT(s) · ${porDia[dia].length} equipe(s)</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════
+// AÇÕES DOS CARTÕES
+// ══════════════════════════════════
+function toggleCard(id){expandidos.has(id)?expandidos.delete(id):expandidos.add(id);renderBoard();}
+function moverCard(id,s){cards=cards.map(c=>c.id===id?{...c,status:s}:c);renderBoard();renderDados();}
+function deletarCard(id){if(confirm('Remover este cartão?')){cards=cards.filter(c=>c.id!==id);expandidos.delete(id);renderBoard();renderDados();}}
+function mudarPrio(id,p){cards=cards.map(c=>c.id===id?{...c,prioridade:p}:c);renderBoard();}
+function salvarDatas(id){
+  const de=document.getElementById('de-'+id)?.value||'';
+  const dr=document.getElementById('dr-'+id)?.value||'';
+  cards=cards.map(c=>c.id===id?{...c,dataEnviada:de,dataRevisada:dr}:c);renderBoard();
+}
+function addComentario(id){
+  const el=document.getElementById('cm-'+id);if(!el||!el.value.trim()) return;
+  cards=cards.map(c=>c.id===id?{...c,comentarios:[...c.comentarios,{texto:el.value.trim(),hora:agora(),autor:usuarioAtual}]}:c);renderBoard();
+}
+function repassar(id,r){cards=cards.map(c=>c.id===id?{...c,responsavel:r}:c);renderBoard();renderDados();}
+function addOTTexto(id){
+  const el=document.getElementById('ot-'+id);if(!el||!el.value.trim()) return;
+  cards=cards.map(c=>c.id===id?{...c,ots:[...c.ots,{nome:el.value.trim(),tipo:'texto',hora:agora()}]}:c);
+  el.value='';renderBoard();
+}
+function addOTArquivo(id,input){
+  if(!input.files[0]) return;
+  cards=cards.map(c=>c.id===id?{...c,ots:[...c.ots,{nome:input.files[0].name,tipo:'arquivo',hora:agora()}]}:c);
+  input.value='';renderBoard();
+}
+function removerOT(id,i){cards=cards.map(c=>c.id===id?{...c,ots:c.ots.filter((_,j)=>j!==i)}:c);renderBoard();}
+
+// ══════════════════════════════════
+// RESPONSÁVEIS
+// ══════════════════════════════════
+function abrirRespModal(){renderRespLista();document.getElementById('modal-resp').classList.remove('hidden');}
+function renderRespLista(){
+  document.getElementById('resp-lista').innerHTML=responsaveis.map(r=>`
+    <div class="resp-item"><span class="resp-name">👤 ${esc(r)}</span>
+    ${responsaveis.length>1?`<button class="btn btn-red" onclick="removerResp('${r}')">remover</button>`:''}</div>`).join('');
+}
+function adicionarResp(){
+  const v=document.getElementById('novo-resp').value.trim();
+  if(!v||responsaveis.includes(v)) return;
+  responsaveis.push(v);document.getElementById('novo-resp').value='';renderRespLista();renderBoard();
+}
+function removerResp(r){if(responsaveis.length<=1) return;responsaveis=responsaveis.filter(x=>x!==r);renderRespLista();renderBoard();}
+
+// ══════════════════════════════════
+// MODAL NOVO
+// ══════════════════════════════════
+function abrirAddModal(){
+  document.getElementById('f-resp').innerHTML=responsaveis.map(r=>`<option>${r}</option>`).join('');
+  document.getElementById('modal-add').classList.remove('hidden');
+}
+function salvarNovo(){
+  const eq=document.getElementById('f-equipe').value.trim();
+  const val=parseFloat(document.getElementById('f-valor').value);
+  if(!eq||isNaN(val)){alert('Equipe e Valor são obrigatórios.');return;}
+  cards.push({
+    id:Date.now(),equipe:eq,responsavel:document.getElementById('f-resp').value,valor:val,
+    data:document.getElementById('f-data').value,dataEnviada:document.getElementById('f-enviada').value,
+    dataRevisada:document.getElementById('f-revisada').value,municipio:document.getElementById('f-municipio').value,
+    baremo:document.getElementById('f-baremo').value,ordemServico:document.getElementById('f-ordem').value,
+    obs:document.getElementById('f-obs').value,extra:document.getElementById('f-extra').value,
+    prioridade:document.getElementById('f-prio').value,status:document.getElementById('f-status').value,
+    comentarios:[],ots:[],daPlanilha:false,adicionadoPor:usuarioAtual
+  });
+  fecharModal('modal-add');
+  ['f-equipe','f-valor','f-data','f-enviada','f-revisada','f-municipio','f-baremo','f-ordem','f-obs','f-extra'].forEach(i=>document.getElementById(i).value='');
+  renderBoard();renderDados();
+}
+function fecharModal(id){document.getElementById(id).classList.add('hidden');}
+
+// ══════════════════════════════════
+// ABA DADOS
+// ══════════════════════════════════
+function renderDados(){
+  const tbody=document.getElementById('dados-tbody');if(!tbody) return;
+  tbody.innerHTML=cards.map(c=>`<tr>
+    <td><input value="${esc(c.equipe)}" onchange="atualizarCard(${c.id},'equipe',this.value)"></td>
+    <td><select onchange="atualizarCard(${c.id},'responsavel',this.value)">${responsaveis.map(r=>`<option${r===c.responsavel?' selected':''}>${r}</option>`).join('')}</select></td>
+    <td><input type="number" value="${c.valor}" onchange="atualizarCard(${c.id},'valor',parseFloat(this.value))"></td>
+    <td><input value="${esc(c.data||'')}" onchange="atualizarCard(${c.id},'data',this.value)"></td>
+    <td><input value="${esc(c.dataEnviada||'')}" onchange="atualizarCard(${c.id},'dataEnviada',this.value)"></td>
+    <td><input value="${esc(c.dataRevisada||'')}" onchange="atualizarCard(${c.id},'dataRevisada',this.value)"></td>
+    <td><input value="${esc(c.municipio||'')}" onchange="atualizarCard(${c.id},'municipio',this.value)"></td>
+    <td><input value="${esc(c.baremo||'')}" onchange="atualizarCard(${c.id},'baremo',this.value)"></td>
+    <td><input value="${esc(c.ordemServico||'')}" onchange="atualizarCard(${c.id},'ordemServico',this.value)"></td>
+    <td><select onchange="atualizarCard(${c.id},'status',this.value)">${COLS.map(col=>`<option value="${col.id}"${c.status===col.id?' selected':''}>${col.label}</option>`).join('')}</select></td>
+    <td><select onchange="atualizarCard(${c.id},'prioridade',this.value)">${Object.entries(PRIOS).map(([k,v])=>`<option value="${k}"${c.prioridade===k?' selected':''}>${v.label}</option>`).join('')}</select></td>
+    <td><input value="${esc(c.obs||'')}" onchange="atualizarCard(${c.id},'obs',this.value)"></td>
+    <td><input value="${esc(c.extra||'')}" onchange="atualizarCard(${c.id},'extra',this.value)"></td>
+    <td><button class="btn btn-red" onclick="deletarCard(${c.id})">🗑️</button></td>
+  </tr>`).join('');
+}
+function atualizarCard(id,k,v){cards=cards.map(c=>c.id===id?{...c,[k]:v}:c);salvarDados();}
+function addLinhaDados(){
+  cards.push({id:Date.now(),equipe:'',responsavel:responsaveis[0]||'',valor:0,data:'',dataEnviada:'',dataRevisada:'',municipio:'',baremo:'',ordemServico:'',obs:'',extra:'',status:'pendente',prioridade:'normal',comentarios:[],ots:[],daPlanilha:false,adicionadoPor:usuarioAtual});
+  renderDados();renderBoard();
+}
+
+// ══════════════════════════════════
+// IMPORTAR / EXPORTAR
+// ══════════════════════════════════
+function exportarCSV(){
+  const ks=['equipe','responsavel','valor','data','dataEnviada','dataRevisada','municipio','baremo','ordemServico','obs','extra','status','prioridade'];
+  const csv=[ks.join(','),...cards.map(c=>ks.map(k=>`"${(c[k]||'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='kanban.csv';a.click();
+}
+function importarCSV(){document.getElementById('csv-input').click();}
+function handleCSV(e){
+  const f=e.target.files[0];if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const ls=ev.target.result.split('\n').filter(l=>l.trim());if(ls.length<2) return;
+    const hdr=ls[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+    const novos=ls.slice(1).map(line=>{
+      const vs=line.match(/(".*?"|[^,]+)/g)||[];
+      const o={id:Date.now()+Math.random(),comentarios:[],ots:[],daPlanilha:true,adicionadoPor:'Importado'};
+      hdr.forEach((k,i)=>{o[k]=(vs[i]||'').replace(/^"|"$/g,'');});
+      o.valor=parseFloat(o.valor)||0;
+      if(!o.status) o.status='pendente';
+      if(!o.prioridade) o.prioridade='normal';
+      if(!o.responsavel) o.responsavel=responsaveis[0]||'';
+      return o;
+    }).filter(o=>o.equipe);
+    if(confirm(`Importar ${novos.length} registros?`)){cards=[...cards,...novos];renderBoard();renderDados();}
+  };
+  r.readAsText(f);e.target.value='';
+}
+function exportarExcel(){
+  const hdr=['Equipe','Responsável','Valor','Data','Dt Enviada','Dt Revisada','Município','Baremo','Nº Ordem','Status','Prioridade','Obs','Extra','OTs'];
+  const ks=['equipe','responsavel','valor','data','dataEnviada','dataRevisada','municipio','baremo','ordemServico','status','prioridade','obs','extra'];
+  const toRow=(cs,h)=>`<Row>${cs.map(c=>`<Cell${h?' ss:StyleID="h"':''}><Data ss:Type="${h||isNaN(c)||c===''?'String':'Number'}">${esc(String(c))}</Data></Cell>`).join('')}</Row>`;
+  const rows=cards.map(c=>{const v=ks.map(k=>c[k]||'');v.push(c.ots.map(o=>o.nome).join(' | '));return v;});
+  const xml=`<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1F3864" ss:Pattern="Solid"/></Style></Styles><Worksheet ss:Name="Kanban"><Table>${toRow(hdr,true)}${rows.map(r=>toRow(r,false)).join('')}</Table></Worksheet></Workbook>`;
+  const a=document.createElement('a');a.href='data:application/vnd.ms-excel;charset=utf-8,'+encodeURIComponent(xml);a.download='kanban.xls';a.click();
+}
+</script>
+</body>
+</html>
